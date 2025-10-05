@@ -38,7 +38,7 @@ Mais do que um app, é uma **ponte entre quem precisa e quem pode ajudar**.
 
 ---
 
-## 📂 Organização do Projeto (estrutura sugerida)
+## 📂 Organização do Projeto
 
 ```bash
 lib/
@@ -47,11 +47,7 @@ lib/
 ├── core/              # Configurações centrais (tema, rotas, utils)
 ├── models/            # Modelos de dados (User, Ponto, ONG)
 ├── services/          # Serviços (Firebase, Maps, APIs externas)
-├── screens/           # Telas principais do app
-│   ├── auth/          # Login, cadastro
-│   ├── home/          # Tela inicial com mapa
-│   ├── pontos/        # Cadastro e detalhes de pontos
-│   └── perfil/        # Perfil de usuário, vínculos com ONGs
+├── views/             # Telas principais do app
 ├── widgets/           # Componentes reutilizáveis (cards, botões, etc.)
 └── assets/            # Ícones, imagens, configs de estilo
 ```
