@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "650960573029",
+    "project_id": "aqui-ajuda-8b69b",
+    "storage_bucket": "aqui-ajuda-8b69b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:650960573029:android:138bf0331cd76fe1532c8c",
+        "android_client_info": {
+          "package_name": "com.example.aqui_ajuda_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "650960573029-rjj906hdiva4486oanluo373hglf5h6b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.aqui_ajuda_app",
+            "certificate_hash": "1959b21dd1ecdbd6aa96523638b850221dc73fb8"
+          }
+        },
+        {
+          "client_id": "650960573029-dkpagnp5j7dl0u8doe5d38g8g1l785v4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBi2EbNsMD0NOepFAhtiRBV4lCtEDRreaE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "650960573029-dkpagnp5j7dl0u8doe5d38g8g1l785v4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
