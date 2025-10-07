@@ -2,6 +2,7 @@ import 'package:aqui_ajuda_app/common/colors.dart';
 import 'package:aqui_ajuda_app/components/decoration_text_field.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:aqui_ajuda_app/service/auth_service.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -13,6 +14,11 @@ class Login extends StatefulWidget {
 class _LoginState extends State<Login> {
   bool isLogin = true;
   final _formKey = GlobalKey<FormState>();
+  final AuthService _authService = AuthService();
+
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +60,7 @@ class _LoginState extends State<Login> {
                     child: Column(
                       children: [
                         TextFormField(
+                          controller: _emailController,
                           decoration: getLoginInputDecoration(
                             "Email",
                             Icons.email,
@@ -67,6 +74,7 @@ class _LoginState extends State<Login> {
                         ),
                         const SizedBox(height: 12),
                         TextFormField(
+                          controller: _passwordController,
                           decoration: getLoginInputDecoration(
                             "Senha",
                             Icons.lock,
@@ -76,6 +84,7 @@ class _LoginState extends State<Login> {
                         if (!isLogin) ...[
                           const SizedBox(height: 12),
                           TextFormField(
+                            controller: _confirmPasswordController,
                             decoration: getLoginInputDecoration(
                               "Confirmar senha",
                               Icons.lock,
@@ -128,7 +137,16 @@ class _LoginState extends State<Login> {
                           children: [
                             Expanded(
                               child: OutlinedButton.icon(
-                                onPressed: () {},
+                                onPressed: () async {
+                                  try {
+                                    final user = await _authService.signInWithGoogle();
+                                    if (user != null) {
+                                      Navigator.of(context).pushNamed('/teste');
+                                    }
+                                  } catch (e) {
+                                    showError("Erro ao entrar com Google: $e");
+                                  }
+                                },
                                 icon: const Icon(
                                   FontAwesomeIcons.google,
                                   color: Colors.red,
@@ -176,9 +194,39 @@ class _LoginState extends State<Login> {
     );
   }
 
-  mainButtonPressed() {
+  mainButtonPressed() async {
     if (_formKey.currentState!.validate()) {
-      Navigator.of(context).pushNamed('/teste');
+      final email = _emailController.text.trim();
+      final password = _passwordController.text.trim();
+
+      try {
+        if (isLogin) {
+          final user = await _authService.signInWithEmail(email, password);
+          Navigator.of(context).pushNamed('/teste');
+        } else {
+          final confirm = _confirmPasswordController.text.trim();
+          if (password != confirm) {
+            showError("Senhas não coincidem");
+            return;
+          }
+          final user = await _authService.registerWithEmail(email, password);
+          showSuccess("Cadastro realizado! Verifique seu e-mail.");
+        }
+      } catch (e) {
+        showError(e.toString());
+      }
     }
+  }
+
+  void showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
+
+  void showSuccess(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.green),
+    );
   }
 }
