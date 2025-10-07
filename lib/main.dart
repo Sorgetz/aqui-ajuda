@@ -1,5 +1,5 @@
-import 'package:aqui_ajuda_app/view/login_page.dart';
-import 'package:aqui_ajuda_app/view/test_screen.dart';
+import 'package:aqui_ajuda_app/views/login_page.dart';
+import 'package:aqui_ajuda_app/views/map_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
       title: 'Flutter Demo',
       // teste rotas
       initialRoute: '/',
-      routes: {'/': (_) => Login(), '/teste': (_) => Teste()},
+      routes: {'/': (_) => Login(), '/mapa': (_) => Map()},
       // home: Login(),
     );
   }

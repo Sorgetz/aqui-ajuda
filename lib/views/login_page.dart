@@ -59,8 +59,9 @@ class _LoginState extends State<Login> {
                             Icons.email,
                           ),
                           validator: (value) {
-                            if (value == null || value.isEmpty)
+                            if (value == null || value.isEmpty) {
                               return "Digite o e-mail";
+                            }
                             if (!value.contains("@")) return "E-mail inválido";
                             return null;
                           },
@@ -178,7 +179,7 @@ class _LoginState extends State<Login> {
 
   mainButtonPressed() {
     if (_formKey.currentState!.validate()) {
-      Navigator.of(context).pushNamed('/teste');
+      Navigator.of(context).pushNamed('/mapa');
     }
   }
 }
