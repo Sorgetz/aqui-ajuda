@@ -1,6 +1,6 @@
 # 📱 Aqui Ajuda
 
-Aplicativo em Flutter para conectar **voluntários, ONGs e comunidades afetadas por desastres ambientais**.  
+O Aplicativo em Flutter para conectar **voluntários, ONGs e comunidades afetadas por desastres ambientais**.  
 A proposta é oferecer uma ferramenta simples, intuitiva e colaborativa que facilite a **organização, comunicação e resposta rápida** em momentos de crise.
 
 ---
