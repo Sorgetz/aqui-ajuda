@@ -1,15 +1,16 @@
 # 📱 Aqui Ajuda
 
-O Aplicativo em Flutter para conectar **voluntários, ONGs e comunidades afetadas por desastres ambientais**.  
+O Aplicativo em Flutter serve para conectar **voluntários, ONGs e comunidades afetadas por desastres ambientais**.  
 A proposta é oferecer uma ferramenta simples, intuitiva e colaborativa que facilite a **organização, comunicação e resposta rápida** em momentos de crise.
 o mesmo  nasce para reduzir essa distância, oferecendo uma plataforma simples, intuitiva e colaborativa que centraliza informações e facilita ações rápidas.
+
 ---
-## Por que o Aqui Ajuda existe?
+## 🧐 Por que o Aqui Ajuda existe?
 Durante desastres naturais, cada minuto importa.
 A falta de comunicação eficiente entre quem precisa de ajuda e quem pode oferecê-la resulta em atrasos críticos, desperdício de recursos e aumento do sofrimento das comunidades.
 O Aqui Ajuda foi criado para diminuir o impacto dessas falhas de comunicação, permitindo que informações essenciais circulem de forma confiável e em tempo real.
 
-## Que problema o Aqui Ajuda resolve?
+## ❓ Que problema o Aqui Ajuda resolve?
 Em situações emergenciais, diferentes grupos voluntários, ONGs e vítimas — operam com dados fragmentados, comunicações dispersas e falta de visibilidade sobre o que realmente está acontecendo.
 
 Isso leva a cenários como:
@@ -19,7 +20,7 @@ Isso leva a cenários como:
  - Falta de recursos onde a necessidade é mais urgente
  - Dificuldade em identificar locais de risco em tempo real
    
-## Quais princípios de design orientam o Aqui Ajuda?
+## 🚨 Quais princípios de design orientam o Aqui Ajuda?
 O design e a arquitetura do Aqui Ajuda foram guiados por princípios de usabilidade, confiabilidade e escalabilidade, com base em boas práticas de sistemas distribuídos e aplicações críticas.
 
 Entre seus pilares estão:
@@ -61,19 +62,3 @@ Mais do que um app, é uma **ponte entre quem precisa e quem pode ajudar**.
 - [Firebase](https://firebase.google.com/) (autenticação e banco de dados)
 - [Google Maps API](https://developers.google.com/maps) / [Carto](https://carto.com/) / [MapTiler](https://www.maptiler.com/) (mapas e geolocalização)
 - [flutter_dotenv](https://pub.dev/packages/flutter_dotenv) (variáveis de ambiente)
-
----
-
-## 📂 Organização do Projeto
-
-```bash
-lib/
-│── main.dart
-│
-├── core/              # Configurações centrais (tema, rotas, utils)
-├── models/            # Modelos de dados (User, Ponto, ONG)
-├── services/          # Serviços (Firebase, Maps, APIs externas)
-├── views/             # Telas principais do app
-├── widgets/           # Componentes reutilizáveis (cards, botões, etc.)
-└── assets/            # Ícones, imagens, configs de estilo
-```
