@@ -55,6 +55,14 @@ O **Aqui Ajuda** busca reduzir os impactos da falta de comunicação em desastre
 Mais do que um app, é uma **ponte entre quem precisa e quem pode ajudar**.
 
 ---
+## 🛠️ Tecnologias Utilizadas
+
+- [Flutter](https://flutter.dev/) (Dart)
+- [Firebase](https://firebase.google.com/) (autenticação e banco de dados)
+- [Google Maps API](https://developers.google.com/maps) / [Carto](https://carto.com/) / [MapTiler](https://www.maptiler.com/) (mapas e geolocalização)
+- [flutter_dotenv](https://pub.dev/packages/flutter_dotenv) (variáveis de ambiente)
+
+  
 ## 📍 Aplicativos similares 
 FEMA : O aplicativo FEMA (Federal Emergency Management Agency) é uma ferramenta oficial desenvolvida pela Agência Federal de Gerenciamento de Emergências dos Estados Unidos,  é gratuito e está disponível para Android e iOS, voltada para ajudar cidadãos a se prepararem, responderem e se recuperarem de desastres naturais e outras situações de emergência.
 
@@ -78,9 +86,4 @@ Weather Update: O Weather Update é um aplicativo colaborativo que funciona de f
 
 o aplicativo reúne imagens de satélite, dados de radares e fotos enviadas pelos usuários, criando um panorama dinâmico e atualizado sobre o tempo em diferentes locais. Essa troca de informações torna o Weather Update uma ótima opção para quem deseja se planejar antes de viajar ou sair de casa, especialmente em áreas propensas a mudanças climáticas bruscas ou desastres naturais.
 
-## 🛠️ Tecnologias Utilizadas
 
-- [Flutter](https://flutter.dev/) (Dart)
-- [Firebase](https://firebase.google.com/) (autenticação e banco de dados)
-- [Google Maps API](https://developers.google.com/maps) / [Carto](https://carto.com/) / [MapTiler](https://www.maptiler.com/) (mapas e geolocalização)
-- [flutter_dotenv](https://pub.dev/packages/flutter_dotenv) (variáveis de ambiente)
