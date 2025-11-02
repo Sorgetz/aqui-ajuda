@@ -55,6 +55,28 @@ O **Aqui Ajuda** busca reduzir os impactos da falta de comunicação em desastre
 Mais do que um app, é uma **ponte entre quem precisa e quem pode ajudar**.
 
 ---
+## 📍 Aplicativos similares 
+FEMA : O aplicativo FEMA (Federal Emergency Management Agency) é uma ferramenta oficial desenvolvida pela Agência Federal de Gerenciamento de Emergências dos Estados Unidos,  é gratuito e está disponível para Android e iOS, voltada para ajudar cidadãos a se prepararem, responderem e se recuperarem de desastres naturais e outras situações de emergência.
+
+Com o aplicativo, os usuários podem:
+
+ - Receber alertas em tempo real sobre desastres e condições climáticas severas diretamente do Serviço Nacional de Meteorologia (NOAA).
+
+ - Acompanhar locais afetados por furacões, tornados, enchentes, incêndios e outros eventos.
+
+ - Acessar orientações de segurança detalhadas sobre o que fazer antes, durante e depois de diferentes tipos de desastre.
+
+ - Criar um plano familiar de emergência, incluindo pontos de encontro, contatos importantes e rotas de evacuação.
+
+ - Registrar pedidos de assistência federal após desastres declarados pelo governo.
+
+ - Localizar abrigos de emergência e centros de recuperação próximos.
+
+ - Salvar informações importantes sobre seguros, documentos e contatos de emergência em um só lugar.
+
+Weather Update: O Weather Update é um aplicativo colaborativo que funciona de forma semelhante ao famoso Waze, mas voltado para o monitoramento do clima. A ferramenta permite que os próprios usuários compartilhem informações em tempo real sobre as condições meteorológicas em suas regiões, como temperatura, chuva, ventos, neblina e outras ocorrências.
+
+o aplicativo reúne imagens de satélite, dados de radares e fotos enviadas pelos usuários, criando um panorama dinâmico e atualizado sobre o tempo em diferentes locais. Essa troca de informações torna o Weather Update uma ótima opção para quem deseja se planejar antes de viajar ou sair de casa, especialmente em áreas propensas a mudanças climáticas bruscas ou desastres naturais.
 
 ## 🛠️ Tecnologias Utilizadas
 
