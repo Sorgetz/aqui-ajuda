@@ -1,23 +1,29 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MapPoint {
-  int? id;
+  String? id;
   String title;
   String description;
+  String contact;
+  String openTimes;
   String type;
   double latitude;
   double longitude;
   Timestamp createdAt;
+  String createdBy;
   bool active;
 
   MapPoint({
     this.id,
     required this.title,
     required this.description,
+    required this.contact,
+    required this.openTimes,
     required this.type,
     required this.latitude,
     required this.longitude,
     required this.createdAt,
+    required this.createdBy,
     required this.active,
   });
 
@@ -26,10 +32,13 @@ class MapPoint {
       'id': id,
       'title': title,
       'description': description,
+      'contact': contact,
+      'openTimes': openTimes,
       'type': type,
       'latitude': latitude,
       'longitude': longitude,
       'createdAt': createdAt,
+      'createdBy': createdBy,
       'active': active,
     };
   }
@@ -39,10 +48,13 @@ class MapPoint {
       id: map['id'],
       title: map['title'],
       description: map['description'],
+      contact: map['contact'],
+      openTimes: map['openTimes'],
       type: map['type'],
       latitude: map['latitude'],
       longitude: map['longitude'],
       createdAt: map['createdAt'],
+      createdBy: map['createdBy'],
       active: map['active'],
     );
   }

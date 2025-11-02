@@ -199,7 +199,7 @@ class _LoginState extends State<Login> {
                   try {
                     final user = await _authService.signInWithGoogle();
                     if (user != null && mounted) {
-                      Navigator.of(context).pushNamed('/teste');
+                      Navigator.of(context).pushNamed('/mapa', arguments: user);
                     }
                   } catch (e) {
                     showError(e.toString());

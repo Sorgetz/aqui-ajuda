@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       initialRoute: '/',
-      routes: {'/': (_) => Login(), '/mapa': (_) => Map()},
+      routes: {'/': (_) => Login(), '/mapa': (_) => Maps()},
     );
   }
 }

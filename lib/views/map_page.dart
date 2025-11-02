@@ -1,25 +1,26 @@
 import 'dart:async';
 
+import 'package:aqui_ajuda_app/model/map_point.dart';
 import 'package:aqui_ajuda_app/viewmodel/map_point_viewmodel.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_map_marker_popup/extension_api.dart';
 import 'package:flutter_map_marker_popup/flutter_map_marker_popup.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 
-class Map extends StatefulWidget {
+class Maps extends StatefulWidget {
   final MapPointDTO? mapPointDTO;
-  const Map({super.key, this.mapPointDTO});
+  const Maps({super.key, this.mapPointDTO});
 
   @override
-  State<Map> createState() => _MapState();
+  State<Maps> createState() => _MapState();
 }
 
-class _MapState extends State<Map> {
+class _MapState extends State<Maps> {
   int _currentIndex = 1;
   LatLng? _userPosition;
   LatLng? _markerPosition;
@@ -34,6 +35,8 @@ class _MapState extends State<Map> {
 
   final PopupController _popupLayerController = PopupController();
   // final TextEditingController _mapSearchController = TextEditingController();
+
+  String _selectedChip = ''; //pesquisa por categoria
 
   @override
   void initState() {
@@ -101,7 +104,8 @@ class _MapState extends State<Map> {
     }
   }
 
-  Widget _buildChip(String label, Color color, bool selected) {
+  Widget _buildChip(String label, Color color) {
+    var selected = _selectedChip == label;
     return Padding(
       padding: const EdgeInsets.only(right: 8.0),
       child: ChoiceChip(
@@ -112,15 +116,415 @@ class _MapState extends State<Map> {
         selected: selected,
         selectedColor: color,
         backgroundColor: color.withOpacity(0.6),
-        onSelected: (_) {},
+        onSelected: (newlySelected) {
+          setState(() {
+            _selectedChip = newlySelected ? label : '';
+          });
+        },
       ),
     );
+  }
+
+  Future<String?> _showCategoryBottomSheet(BuildContext context) async {
+    return await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      builder: (context) {
+        String? selectedOption;
+        return StatefulBuilder(
+          builder: (context, setState) => Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Categorize o ponto',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 10),
+                if (selectedOption == null) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _OptionButton(
+                        icon: Icons.lunch_dining_rounded,
+                        label: 'Comidas',
+                        selected: selectedOption == 'Comidas',
+                        onTap: () => setState(() => selectedOption = 'Comidas'),
+                      ),
+                      _OptionButton(
+                        icon: Icons.house_rounded,
+                        label: 'Abrigo',
+                        selected: selectedOption == 'Abrigo',
+                        onTap: () => setState(() => selectedOption = 'Abrigo'),
+                      ),
+                      _OptionButton(
+                        icon: Icons.checkroom_rounded,
+                        label: 'Roupas',
+                        selected: selectedOption == 'Roupas',
+                        onTap: () => setState(() => selectedOption = 'Roupas'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Segunda linha
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _OptionButton(
+                        icon: Icons.child_friendly_rounded,
+                        label: 'Bebê',
+                        selected: selectedOption == 'Bebê',
+                        onTap: () => setState(() => selectedOption = 'Bebê'),
+                      ),
+                      _OptionButton(
+                        icon: Icons.pets_rounded,
+                        label: 'Abrigo Pet',
+                        selected: selectedOption == 'Abrigo Pet',
+                        onTap: () =>
+                            setState(() => selectedOption = 'Abrigo Pet'),
+                      ),
+                      _OptionButton(
+                        icon: Icons.keyboard_control,
+                        label: 'Outro',
+                        selected: selectedOption == 'Outro',
+                        onTap: () => setState(() => selectedOption = 'Outro'),
+                      ),
+                    ],
+                  ),
+                ] else ...[
+                  const SizedBox(height: 16),
+                  Icon(
+                    _getIconFor(selectedOption!),
+                    color: Colors.pinkAccent,
+                    size: 60,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    selectedOption!,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey.shade300,
+                          foregroundColor: Colors.black87,
+                        ),
+                        onPressed: () => setState(() => selectedOption = null),
+                        child: const Text('Cancelar'),
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.pinkAccent,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () => Navigator.pop(context, selectedOption),
+                        child: const Text('Confirmar'),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<Map<String, String>?> _showPointDetailsBottomSheet(
+    BuildContext context,
+  ) async {
+    final titleController = TextEditingController();
+    final descController = TextEditingController();
+    final contactController = TextEditingController();
+    final scheduleController = TextEditingController();
+
+    return await showModalBottomSheet<Map<String, String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+            left: 16,
+            right: 16,
+            top: 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Descreva o ponto',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(
+                  labelText: 'Título do ponto',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: descController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Descrição',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: contactController,
+                decoration: const InputDecoration(
+                  labelText: 'Contato (opcional)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: scheduleController,
+                decoration: const InputDecoration(
+                  labelText: 'Horário (ex: 08:00 - 18:00)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey.shade300,
+                      foregroundColor: Colors.black87,
+                    ),
+                    onPressed: () => Navigator.pop(context, null),
+                    child: const Text('Voltar'),
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.pinkAccent,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () {
+                      if (titleController.text.isEmpty) return;
+                      Navigator.pop(context, {
+                        'title': titleController.text,
+                        'description': descController.text,
+                        'contact': contactController.text,
+                        'schedule': scheduleController.text,
+                      });
+                    },
+                    child: const Text('Avançar'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<bool> _showConfirmationBottomSheet(
+    BuildContext context,
+    String category,
+    Map<String, String> details,
+  ) async {
+    return await showModalBottomSheet<bool>(
+          context: context,
+          backgroundColor: Colors.white,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          builder: (context) {
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _getIconFor(category),
+                    color: Colors.pinkAccent,
+                    size: 50,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    details['title'] ?? '',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    details['description'] ?? '',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 10),
+                  if (details['contact']?.isNotEmpty ?? false)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.phone, size: 18),
+                        const SizedBox(width: 4),
+                        Text(details['contact']!),
+                      ],
+                    ),
+                  if (details['schedule']?.isNotEmpty ?? false)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.access_time, size: 18),
+                        const SizedBox(width: 4),
+                        Text(details['schedule']!),
+                      ],
+                    ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey.shade300,
+                          foregroundColor: Colors.black87,
+                        ),
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Editar'),
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.pinkAccent,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('Salvar ponto'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        ) ??
+        false;
+  }
+
+  Future<bool> _showInfoBottomSheet(
+    BuildContext context,
+    MapPointDTO mapPoint,
+  ) async {
+    return await showModalBottomSheet<bool>(
+          context: context,
+          backgroundColor: Colors.white,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          builder: (context) {
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _getIconFor(mapPoint.type),
+                    color: Colors.pinkAccent,
+                    size: 50,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    mapPoint.title,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(mapPoint.description, textAlign: TextAlign.center),
+                  const SizedBox(height: 10),
+                  if (mapPoint.contact.isNotEmpty)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.phone, size: 18),
+                        const SizedBox(width: 4),
+                        Text(mapPoint.contact),
+                      ],
+                    ),
+                  if (mapPoint.openTimes.isNotEmpty)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.access_time, size: 18),
+                        const SizedBox(width: 4),
+                        Text(mapPoint.openTimes),
+                      ],
+                    ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey.shade300,
+                          foregroundColor: Colors.black87,
+                        ),
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Sair'),
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.pinkAccent,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('Feedback'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        ) ??
+        false;
   }
 
   @override
   Widget build(BuildContext context) {
     final vm = Provider.of<MapPointViewModel>(context);
+    vm.loadMapPoints(_selectedChip);
     final apiKey = dotenv.env['MAPTILER_API_KEY'] ?? '';
+    final user = ModalRoute.of(context)!.settings.arguments;
+    final UserCredential? appUser = user as UserCredential?;
 
     return Scaffold(
       body: Stack(
@@ -141,6 +545,7 @@ class _MapState extends State<Map> {
                     _markerPosition = point;
                     _mapLatitudadeController.text = point.latitude.toString();
                     _mapLongitudeController.text = point.longitude.toString();
+                    _popupLayerController.hideAllPopups();
                   });
                 },
               ),
@@ -150,32 +555,36 @@ class _MapState extends State<Map> {
                       'https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=$apiKey',
                   userAgentPackageName: 'com.example.aqui_ajuda',
                 ),
+                MarkerLayer(
+                  markers: [
+                    if (_userPosition != null)
+                      Marker(
+                        point: _userPosition!,
+                        width: 40,
+                        height: 40,
+                        builder: (_) => const Icon(
+                          Icons.my_location,
+                          color: Colors.blue,
+                          size: 32,
+                        ),
+                      ),
+                    if (_markerPosition != null)
+                      Marker(
+                        point: _markerPosition!,
+                        width: 60,
+                        height: 60,
+                        builder: (_) => const Icon(
+                          Icons.location_pin,
+                          color: Colors.red,
+                          size: 40,
+                        ),
+                      ),
+                  ],
+                ),
                 PopupMarkerLayer(
                   options: PopupMarkerLayerOptions(
                     popupController: _popupLayerController,
                     markers: [
-                      if (_userPosition != null)
-                        Marker(
-                          point: _userPosition!,
-                          width: 40,
-                          height: 40,
-                          builder: (_) => const Icon(
-                            Icons.my_location,
-                            color: Colors.blue,
-                            size: 32,
-                          ),
-                        ),
-                      if (_markerPosition != null)
-                        Marker(
-                          point: _markerPosition!,
-                          width: 60,
-                          height: 60,
-                          builder: (_) => const Icon(
-                            Icons.location_pin,
-                            color: Colors.red,
-                            size: 40,
-                          ),
-                        ),
                       if (vm.mapPoints.isNotEmpty)
                         ...vm.mapPoints.map(
                           (point) => Marker(
@@ -199,52 +608,99 @@ class _MapState extends State<Map> {
                               p.longitude == marker.point.longitude,
                         );
 
-                        return SizedBox(
-                          width: 200,
-                          child: Card(
-                            color: Colors.white,
-                            elevation: 5,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(10.0),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        _getIconFor(point.type),
-                                        color: Colors.pinkAccent,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        point.type,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.of(context).pop();
+                          },
+                          child: SizedBox(
+                            width: 260,
+                            child: Card(
+                              color: Colors.white,
+                              elevation: 5,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(10.0),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          _getIconFor(point.type),
                                           color: Colors.pinkAccent,
                                         ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          point.type,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.pinkAccent,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      point.title,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
                                       ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    point.title,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
                                     ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    point.description,
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.black54,
+                                    const SizedBox(height: 4),
+                                    if (point.openTimes != '')
+                                      Text(
+                                        point.openTimes,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.black54,
+                                        ),
+                                      ),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceEvenly,
+                                      children: [
+                                        Expanded(
+                                          child: ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  Colors.pinkAccent,
+                                              foregroundColor: Colors.white,
+                                            ),
+                                            onPressed: () => {},
+                                            child: Text(
+                                              point.createdBy ==
+                                                      appUser!.user!.displayName
+                                                  ? 'Desativar'
+                                                  : 'Feedback',
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Expanded(
+                                          child: ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  Colors.pinkAccent,
+                                              foregroundColor: Colors.white,
+                                            ),
+                                            onPressed: () async {
+                                              _popupLayerController
+                                                  .hideAllPopups();
+                                              await _showInfoBottomSheet(
+                                                context,
+                                                point,
+                                              );
+                                            },
+                                            child: Text('Acessar'),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -324,10 +780,11 @@ class _MapState extends State<Map> {
                     child: ListView(
                       scrollDirection: Axis.horizontal,
                       children: [
-                        _buildChip("Comidas", Colors.pink.shade200, true),
-                        _buildChip("Roupas", Colors.red.shade300, false),
-                        _buildChip("Abrigo", Colors.orange.shade300, false),
-                        _buildChip("Abrigo Pet", Colors.purple.shade300, false),
+                        _buildChip("Comidas", Colors.pink.shade200),
+                        _buildChip("Roupas", Colors.red.shade300),
+                        _buildChip("Abrigo", Colors.orange.shade300),
+                        _buildChip("Abrigo Pet", Colors.purple.shade300),
+                        _buildChip("Outro", Colors.green.shade300),
                       ],
                     ),
                   ),
@@ -337,204 +794,81 @@ class _MapState extends State<Map> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.pinkAccent,
-        onPressed: () async {
-          final selectedType = await showModalBottomSheet(
-            context: context,
-            backgroundColor: Colors.white,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-              ),
-            ),
-            builder: (context) {
-              String? selectedOption;
-              return StatefulBuilder(
-                builder: (context, setState) {
-                  void select(String option) {
-                    setState(() {
-                      selectedOption = option;
-                    });
-                  }
-
-                  return Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Cabeçalho com título e botão de fechar
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const SizedBox(width: 40),
-                            const Text(
-                              'Categorize o ponto',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.close,
-                                color: Colors.black54,
-                              ),
-                              onPressed: () => Navigator.pop(context),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-
-                        if (selectedOption == null) ...[
-                          // Primeira linha
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              _OptionButton(
-                                icon: Icons.lunch_dining_rounded,
-                                label: 'Alimento',
-                                selected: selectedOption == 'Alimento',
-                                onTap: () => select('Alimento'),
-                              ),
-                              _OptionButton(
-                                icon: Icons.house_rounded,
-                                label: 'Abrigo',
-                                selected: selectedOption == 'Abrigo',
-                                onTap: () => select('Abrigo'),
-                              ),
-                              _OptionButton(
-                                icon: Icons.checkroom_rounded,
-                                label: 'Roupas',
-                                selected: selectedOption == 'Roupas',
-                                onTap: () => select('Roupas'),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-
-                          // Segunda linha
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              _OptionButton(
-                                icon: Icons.child_friendly_rounded,
-                                label: 'Bebê',
-                                selected: selectedOption == 'Bebê',
-                                onTap: () => select('Bebê'),
-                              ),
-                              _OptionButton(
-                                icon: Icons.pets_rounded,
-                                label: 'Abrigo Pet',
-                                selected: selectedOption == 'Abrigo Pet',
-                                onTap: () => select('Abrigo Pet'),
-                              ),
-                              _OptionButton(
-                                icon: Icons.keyboard_control,
-                                label: 'Outro',
-                                selected: selectedOption == 'Outro',
-                                onTap: () => select('Outro'),
-                              ),
-                            ],
-                          ),
-                        ],
-                        if (selectedOption != null) ...[
-                          const SizedBox(height: 16),
-                          Icon(
-                            _getIconFor(
-                              selectedOption!,
-                            ), // ícone correspondente
-                            color: Colors.pinkAccent,
-                            size: 60,
-                          ),
-                          const SizedBox(height: 16),
-
-                          Text(
-                            '$selectedOption',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.grey.shade300,
-                                  foregroundColor: Colors.black87,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                onPressed: () => setState(() {
-                                  selectedOption = null;
-                                }),
-                                child: const Text('Cancelar'),
-                              ),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.pinkAccent,
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                onPressed: () {
-                                  Navigator.pop(context, selectedOption);
-                                },
-                                child: const Text('Confirmar'),
-                              ),
-                            ],
-                          ),
-                        ],
-                        const SizedBox(height: 20),
-                      ],
-                    ),
-                  );
-                },
+      floatingActionButton: Visibility(
+        visible: _markerPosition != null,
+        child: FloatingActionButton(
+          backgroundColor: Colors.pinkAccent,
+          onPressed: () async {
+            if (_markerPosition == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Toque no mapa para selecionar um ponto.'),
+                ),
               );
-            },
-          );
-          // Se o usuário confirmou o tipo e clicou em algum ponto do mapa
-          if (selectedType != null && _markerPosition != null) {
-            _mapTypeController.text = selectedType;
+              return;
+            }
 
-            // Crie seu DTO para salvar
+            String? selectedType;
+            Map<String, String>? details;
+            bool confirmed = false;
+
+            // 1️⃣ Categoria
+            while (selectedType == null) {
+              selectedType = await _showCategoryBottomSheet(context);
+              if (selectedType == null) return; // cancelou totalmente
+            }
+
+            // 2️⃣ Detalhes
+            while (details == null) {
+              details = await _showPointDetailsBottomSheet(context);
+              if (details == null) {
+                // clicou em "Voltar" → volta para categoria
+                selectedType = await _showCategoryBottomSheet(context);
+                if (selectedType == null) return;
+              }
+            }
+
+            // 3️⃣ Confirmação
+            var pointDetails = details;
+            while (!confirmed) {
+              confirmed = await _showConfirmationBottomSheet(
+                context,
+                selectedType!,
+                pointDetails,
+              );
+              if (!confirmed) {
+                final newDetails = await _showPointDetailsBottomSheet(context);
+                if (newDetails == null) return; // cancelou durante edição
+                pointDetails = newDetails;
+              }
+            }
+
             final mapPoint = MapPointDTO(
-              title: 'Teste',
-              description: 'AAAAAAAAAAAAAAA',
-              type: selectedType,
+              title: details['title'] ?? '',
+              description: details['description'] ?? '',
+              contact: details['contact'] ?? '',
+              openTimes: details['schedule'] ?? '',
+              type: selectedType!,
               latitude: _markerPosition!.latitude,
               longitude: _markerPosition!.longitude,
               createdAt: Timestamp.now(),
+              createdBy: appUser!.user!.displayName ?? '',
               active: true,
             );
 
-            // Aqui você pode salvar no ViewModel, Firestore, etc
-            print(
-              'Salvando ponto: ${mapPoint.type} - '
-              '${mapPoint.latitude}, ${mapPoint.longitude}',
-            );
+            Provider.of<MapPointViewModel>(
+              context,
+              listen: false,
+            ).addMapPoint(dto: mapPoint);
 
-            vm.addMapPoint(dto: mapPoint);
+            setState(() => _markerPosition = null);
 
-            setState(() {
-              _markerPosition = null;
-            });
-          } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Selecione um ponto e uma categoria.'),
-              ),
+              const SnackBar(content: Text('Ponto adicionado com sucesso!')),
             );
-          }
-        },
-        child: const Icon(Icons.add, color: Colors.white),
+          },
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: BottomNavigationBar(
@@ -610,7 +944,7 @@ class _OptionButton extends StatelessWidget {
 
 IconData _getIconFor(String label) {
   switch (label) {
-    case 'Alimento':
+    case 'Comidas':
       return Icons.lunch_dining_rounded;
     case 'Abrigo':
       return Icons.house_rounded;
