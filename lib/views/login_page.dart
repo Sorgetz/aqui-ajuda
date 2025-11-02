@@ -100,8 +100,10 @@ class _LoginState extends State<Login> {
         mainActionButton("Entrar", mainButtonPressed),
         TextButton(
           onPressed: showPasswordResetDialog,
-          child: const Text("Esqueceu a senha?",
-              style: TextStyle(color: Colors.black87)),
+          child: const Text(
+            "Esqueceu a senha?",
+            style: TextStyle(color: Colors.black87),
+          ),
         ),
         const Divider(height: 32, thickness: 1),
         socialButtons(),
@@ -131,8 +133,10 @@ class _LoginState extends State<Login> {
         const SizedBox(height: 12),
         TextFormField(
           controller: _confirmPasswordController,
-          decoration:
-              getLoginInputDecoration("Confirmar senha", Icons.lock_outline),
+          decoration: getLoginInputDecoration(
+            "Confirmar senha",
+            Icons.lock_outline,
+          ),
           obscureText: true,
         ),
         const SizedBox(height: 20),
@@ -155,10 +159,7 @@ class _LoginState extends State<Login> {
         color: Colors.white.withOpacity(0.9),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 6,
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 6),
         ],
       ),
       child: Form(
@@ -188,8 +189,7 @@ class _LoginState extends State<Login> {
   Widget socialButtons() {
     return Column(
       children: [
-        const Text("Ou continue com",
-            style: TextStyle(color: Colors.black87)),
+        const Text("Ou continue com", style: TextStyle(color: Colors.black87)),
         const SizedBox(height: 12),
         Row(
           children: [
@@ -199,7 +199,7 @@ class _LoginState extends State<Login> {
                   try {
                     final user = await _authService.signInWithGoogle();
                     if (user != null && mounted) {
-                      Navigator.of(context).pushNamed('/teste');
+                      Navigator.of(context).pushNamed('/mapa', arguments: user);
                     }
                   } catch (e) {
                     showError(e.toString());
@@ -213,8 +213,7 @@ class _LoginState extends State<Login> {
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: null,
-                icon:
-                    const Icon(FontAwesomeIcons.facebook, color: Colors.blue),
+                icon: const Icon(FontAwesomeIcons.facebook, color: Colors.blue),
                 label: const Text("Facebook"),
               ),
             ),
@@ -230,7 +229,9 @@ class _LoginState extends State<Login> {
       child: GestureDetector(
         onTap: () => setState(() => isLogin = !isLogin),
         child: Text(
-          isLogin ? "Não tem conta? Cadastre-se" : "Já possui conta? Faça login",
+          isLogin
+              ? "Não tem conta? Cadastre-se"
+              : "Já possui conta? Faça login",
           style: const TextStyle(color: Colors.black87),
         ),
       ),
