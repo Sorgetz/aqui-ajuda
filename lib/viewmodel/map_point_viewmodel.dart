@@ -137,8 +137,8 @@ class MapPointViewModel extends ChangeNotifier {
     await loadMapPoints(_lastFilter);
   }
 
-  Future<void> deleteMapPoint(int codigo) async {
-    await _repository.delete(codigo);
+  Future<void> deleteMapPoint(String id) async {
+    await _repository.delete(id);
     await loadMapPoints(_lastFilter);
   }
 }

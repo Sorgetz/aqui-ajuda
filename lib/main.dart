@@ -1,7 +1,8 @@
 import 'package:aqui_ajuda_app/firebase_options.dart';
+import 'package:aqui_ajuda_app/viewmodel/feedback_viewmodel.dart';
 import 'package:aqui_ajuda_app/viewmodel/map_point_viewmodel.dart';
 import 'package:aqui_ajuda_app/views/login_page.dart';
-import 'package:aqui_ajuda_app/views/map_page.dart';
+import 'package:aqui_ajuda_app/views/main_navigation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -16,7 +17,10 @@ void main() async {
 
   runApp(
     MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => MapPointViewModel())],
+      providers: [
+        ChangeNotifierProvider(create: (_) => MapPointViewModel()),
+        ChangeNotifierProvider(create: (_) => FeedbackViewModel()),
+      ],
       child: const MyApp(),
     ),
   );
@@ -30,7 +34,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       initialRoute: '/',
-      routes: {'/': (_) => Login(), '/mapa': (_) => Maps()},
+      routes: {'/': (_) => Login(), '/mapa': (_) => MainNavigation()},
     );
   }
 }
