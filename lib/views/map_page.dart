@@ -1,7 +1,8 @@
 import 'dart:async';
 
-import 'package:aqui_ajuda_app/model/map_point.dart';
+import 'package:aqui_ajuda_app/viewmodel/feedback_viewmodel.dart';
 import 'package:aqui_ajuda_app/viewmodel/map_point_viewmodel.dart';
+import 'package:aqui_ajuda_app/views/help_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +28,8 @@ class _MapState extends State<Maps> {
   final MapController _mapController = MapController();
   bool _loading = true;
   String? _error;
+
+  final screens = [Maps(), HelpScreen()];
 
   //map point
   late TextEditingController _mapTypeController;
@@ -438,9 +441,17 @@ class _MapState extends State<Maps> {
   Future<bool> _showInfoBottomSheet(
     BuildContext context,
     MapPointDTO mapPoint,
+    UserCredential appUser,
   ) async {
+    // Obtém o ViewModel existente
+    final feedbackVM = Provider.of<FeedbackViewModel>(context, listen: false);
+
+    // Carrega os feedbacks do ponto atual
+    feedbackVM.loadFeedbacks(mapPoint.id!);
+
     return await showModalBottomSheet<bool>(
           context: context,
+          isScrollControlled: true,
           backgroundColor: Colors.white,
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.only(
@@ -449,73 +460,248 @@ class _MapState extends State<Maps> {
             ),
           ),
           builder: (context) {
-            return Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    _getIconFor(mapPoint.type),
-                    color: Colors.pinkAccent,
-                    size: 50,
+            return DraggableScrollableSheet(
+              expand: false,
+              initialChildSize: 0.65,
+              minChildSize: 0.5,
+              maxChildSize: 0.95,
+              builder: (context, scrollController) {
+                return Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Consumer<FeedbackViewModel>(
+                    builder: (context, vm, child) {
+                      final feedbacks = vm.feedbacks;
+
+                      return ListView(
+                        controller: scrollController,
+                        children: [
+                          // ---------- Cabeçalho ----------
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                _getIconFor(mapPoint.type),
+                                color: Colors.pinkAccent,
+                                size: 50,
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                mapPoint.title,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                mapPoint.description,
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 10),
+                              if (mapPoint.contact.isNotEmpty)
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.phone, size: 18),
+                                    const SizedBox(width: 4),
+                                    Text(mapPoint.contact),
+                                  ],
+                                ),
+                              if (mapPoint.openTimes.isNotEmpty)
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.access_time, size: 18),
+                                    const SizedBox(width: 4),
+                                    Text(mapPoint.openTimes),
+                                  ],
+                                ),
+                              const SizedBox(height: 20),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.grey.shade300,
+                                      foregroundColor: Colors.black87,
+                                    ),
+                                    onPressed: () =>
+                                        Navigator.pop(context, false),
+                                    child: const Text('Sair'),
+                                  ),
+                                  if (mapPoint.createdBy !=
+                                      appUser!.user!.displayName)
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.pinkAccent,
+                                        foregroundColor: Colors.white,
+                                      ),
+                                      onPressed: () async {
+                                        Navigator.pop(context, true);
+                                        await showFeedbackBottomSheet(
+                                          context,
+                                          mapPoint,
+                                          appUser,
+                                        );
+                                      },
+                                      child: const Text('Feedback'),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 24),
+                              const Divider(),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Feedbacks dos usuários',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                            ],
+                          ),
+
+                          // ---------- Lista de feedbacks ----------
+                          if (feedbacks.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Text(
+                                'Nenhum feedback ainda. Seja o primeiro a avaliar!',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.black54),
+                              ),
+                            )
+                          else
+                            ...feedbacks.map((f) {
+                              double avg =
+                                  [
+                                        f.efficiency ?? 0,
+                                        f.accessibility ?? 0,
+                                        f.security ?? 0,
+                                        f.organization ?? 0,
+                                      ]
+                                      .where((n) => n > 0)
+                                      .fold<double>(0, (a, b) => a + b) /
+                                  ([
+                                    f.efficiency,
+                                    f.accessibility,
+                                    f.security,
+                                    f.organization,
+                                  ].where((n) => n != null && n > 0).length);
+
+                              IconData icon;
+                              if (avg >= 4) {
+                                icon = Icons.sentiment_very_satisfied;
+                              } else if (avg >= 3) {
+                                icon = Icons.sentiment_satisfied;
+                              } else if (avg >= 2) {
+                                icon = Icons.sentiment_neutral;
+                              } else {
+                                icon = Icons.sentiment_dissatisfied;
+                              }
+
+                              return Container(
+                                margin: const EdgeInsets.symmetric(vertical: 6),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    CircleAvatar(
+                                      backgroundColor: Colors.pinkAccent,
+                                      backgroundImage:
+                                          f.createdByProfilePic != null &&
+                                              f.createdByProfilePic!.isNotEmpty
+                                          ? NetworkImage(f.createdByProfilePic!)
+                                          : null,
+                                      child:
+                                          f.createdByProfilePic == null ||
+                                              f.createdByProfilePic!.isEmpty
+                                          ? const Icon(
+                                              Icons.person,
+                                              color: Colors.white,
+                                            )
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Text(
+                                                f.createdBy,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.black87,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 6),
+                                              Icon(
+                                                icon,
+                                                color: Colors.pinkAccent,
+                                                size: 20,
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
+                                          if (!f.isAvailable)
+                                            const Text(
+                                              '⚠️ Marcou como ponto inexistente',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: Colors.redAccent,
+                                              ),
+                                            ),
+                                          const SizedBox(height: 4),
+                                          if (f.experience != null &&
+                                              f.experience!.isNotEmpty)
+                                            Text(
+                                              f.experience!,
+                                              style: const TextStyle(
+                                                color: Colors.black87,
+                                              ),
+                                            ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            _formatTimestamp(f.createdAt),
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.black54,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                        ],
+                      );
+                    },
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    mapPoint.title,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(mapPoint.description, textAlign: TextAlign.center),
-                  const SizedBox(height: 10),
-                  if (mapPoint.contact.isNotEmpty)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.phone, size: 18),
-                        const SizedBox(width: 4),
-                        Text(mapPoint.contact),
-                      ],
-                    ),
-                  if (mapPoint.openTimes.isNotEmpty)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.access_time, size: 18),
-                        const SizedBox(width: 4),
-                        Text(mapPoint.openTimes),
-                      ],
-                    ),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey.shade300,
-                          foregroundColor: Colors.black87,
-                        ),
-                        onPressed: () => Navigator.pop(context, false),
-                        child: const Text('Sair'),
-                      ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.pinkAccent,
-                          foregroundColor: Colors.white,
-                        ),
-                        onPressed: () => Navigator.pop(context, true),
-                        child: const Text('Feedback'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                );
+              },
             );
           },
         ) ??
         false;
+  }
+
+  String _formatTimestamp(Timestamp? ts) {
+    if (ts == null) return '';
+    final date = ts.toDate();
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
   @override
@@ -669,7 +855,25 @@ class _MapState extends State<Maps> {
                                                   Colors.pinkAccent,
                                               foregroundColor: Colors.white,
                                             ),
-                                            onPressed: () => {},
+                                            onPressed: () async {
+                                              _popupLayerController
+                                                  .hideAllPopups();
+                                              if (point.createdBy ==
+                                                  appUser!.user!.displayName) {
+                                                await showDeactivateDialog(
+                                                  context,
+                                                  point.title,
+                                                  point.id!,
+                                                  vm,
+                                                );
+                                              } else {
+                                                await showFeedbackBottomSheet(
+                                                  context,
+                                                  point,
+                                                  appUser,
+                                                );
+                                              }
+                                            },
                                             child: Text(
                                               point.createdBy ==
                                                       appUser!.user!.displayName
@@ -692,6 +896,7 @@ class _MapState extends State<Maps> {
                                               await _showInfoBottomSheet(
                                                 context,
                                                 point,
+                                                appUser,
                                               );
                                             },
                                             child: Text('Acessar'),
@@ -870,22 +1075,6 @@ class _MapState extends State<Maps> {
           child: const Icon(Icons.add, color: Colors.white),
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        selectedItemColor: Colors.pinkAccent,
-        unselectedItemColor: Colors.black54,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.map), label: "Mapa"),
-          BottomNavigationBarItem(icon: Icon(Icons.help), label: "Ajuda"),
-        ],
-      ),
     );
   }
 }
@@ -940,6 +1129,414 @@ class _OptionButton extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<void> showDeactivateDialog(
+  BuildContext context,
+  String title,
+  String pointId,
+  MapPointViewModel vm,
+) async {
+  return showDialog(
+    context: context,
+    builder: (context) {
+      return Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 30, vertical: 24),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.warning_rounded, color: Colors.pinkAccent, size: 48),
+              const SizedBox(height: 12),
+              Text(
+                'Desativar ponto',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Deseja realmente desativar "$title"?',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.black87,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey.shade300,
+                      foregroundColor: Colors.black87,
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Cancelar'),
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.pinkAccent,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () async {
+                      await vm.deleteMapPoint(pointId);
+                      Navigator.of(context).pop();
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Ponto desativado com sucesso!'),
+                          backgroundColor: Colors.pinkAccent,
+                        ),
+                      );
+                    },
+                    child: const Text('Sim, desativar'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+Future<void> showFeedbackBottomSheet(
+  BuildContext context,
+  MapPointDTO point,
+  UserCredential appUser,
+) async {
+  int step = 0;
+
+  // Valores das avaliações
+  int efficiency = 0;
+  int accessibility = 0;
+  int security = 0;
+  int organization = 0;
+  bool? isAvailable;
+  final TextEditingController experienceController = TextEditingController();
+
+  // Define cores e ícones das carinhas
+  Color getColorForValue(int value) {
+    switch (value) {
+      case 1:
+        return Colors.redAccent;
+      case 2:
+        return Colors.orangeAccent;
+      case 3:
+        return Colors.amber;
+      case 4:
+        return Colors.lightGreen;
+      case 5:
+        return Colors.green;
+      default:
+        return Colors.grey.shade300;
+    }
+  }
+
+  IconData getIconForValue(int value) {
+    switch (value) {
+      case 1:
+        return Icons.sentiment_very_dissatisfied_rounded;
+      case 2:
+        return Icons.sentiment_dissatisfied_rounded;
+      case 3:
+        return Icons.sentiment_neutral_rounded;
+      case 4:
+        return Icons.sentiment_satisfied_rounded;
+      case 5:
+        return Icons.sentiment_very_satisfied_rounded;
+      default:
+        return Icons.sentiment_neutral_rounded;
+    }
+  }
+
+  Widget buildRatingRow(
+    String label,
+    int selected,
+    void Function(int) onSelect,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(5, (index) {
+              final value = index + 1;
+              final color = getColorForValue(value);
+              final isSelected = selected >= value;
+              return GestureDetector(
+                onTap: () => onSelect(value),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 5),
+                  child: Icon(
+                    getIconForValue(value),
+                    size: 46,
+                    color: isSelected ? color : Colors.grey.shade300,
+                  ),
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Etapa 1 — Avaliar categorias
+  Widget stepAvaliacoes(StateSetter setState) {
+    return Column(
+      children: [
+        Text(
+          'Avalie "${point.title}"',
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
+        const SizedBox(height: 24),
+        buildRatingRow(
+          'Eficiência',
+          efficiency,
+          (v) => setState(() => efficiency = v),
+        ),
+        buildRatingRow(
+          'Acessibilidade',
+          accessibility,
+          (v) => setState(() => accessibility = v),
+        ),
+        buildRatingRow(
+          'Segurança',
+          security,
+          (v) => setState(() => security = v),
+        ),
+        buildRatingRow(
+          'Organização',
+          organization,
+          (v) => setState(() => organization = v),
+        ),
+      ],
+    );
+  }
+
+  // Etapa 2 — Ponto ainda existe?
+  Widget stepPontoExiste(StateSetter setState) {
+    return Column(
+      children: [
+        const Text(
+          'O ponto ainda existe?',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            color: Colors.black,
+          ),
+        ),
+        const SizedBox(height: 32),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(
+              onPressed: () => setState(() => isAvailable = true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isAvailable == true
+                    ? Colors.pinkAccent
+                    : Colors.grey.shade200,
+                foregroundColor: isAvailable == true
+                    ? Colors.white
+                    : Colors.black,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                minimumSize: const Size(120, 48),
+              ),
+              child: const Text('Sim'),
+            ),
+            const SizedBox(width: 16),
+            ElevatedButton(
+              onPressed: () => setState(
+                () => isAvailable = false,
+              ), //TO DO: termina a avaliação e salva
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isAvailable == false
+                    ? Colors.pinkAccent
+                    : Colors.grey.shade200,
+                foregroundColor: isAvailable == false
+                    ? Colors.white
+                    : Colors.black,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                minimumSize: const Size(120, 48),
+              ),
+              child: const Text('Não'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // Etapa 3 — Relato de experiência
+  Widget stepExperiencia() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        const Text(
+          'Relate sua experiência',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            color: Colors.black,
+          ),
+        ),
+        const SizedBox(height: 24),
+        TextField(
+          controller: experienceController,
+          maxLines: 4,
+          decoration: InputDecoration(
+            hintText: 'Conte como foi sua experiência...',
+            hintStyle: TextStyle(color: Colors.grey.shade500),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            focusedBorder: const OutlineInputBorder(
+              borderSide: BorderSide(color: Colors.pinkAccent, width: 2),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  await showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    ),
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 24,
+              right: 24,
+              top: 24,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (step == 0) stepPontoExiste(setState),
+                if (step == 1) stepAvaliacoes(setState),
+                if (step == 2) stepExperiencia(),
+                const SizedBox(height: 32),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.black87,
+                          side: BorderSide(color: Colors.grey.shade300),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: const Text('Cancelar'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          if (step < 2 && !!isAvailable!) {
+                            setState(() => step++);
+                          } else {
+                            final dto = FeedbackDTO(
+                              efficiency: efficiency,
+                              accessibility: accessibility,
+                              security: security,
+                              organization: organization,
+                              isAvailable: isAvailable ?? true,
+                              createdBy: appUser!.user!.displayName ?? '',
+                              createdByProfilePic:
+                                  appUser!.user!.photoURL ?? '',
+                              mapPointId: point.id!,
+                              createdAt: Timestamp.now(),
+                              experience: experienceController.text,
+                            );
+                            final feedbackVM = Provider.of<FeedbackViewModel>(
+                              context,
+                              listen: false,
+                            );
+
+                            feedbackVM.addFeedback(dto: dto);
+
+                            feedbackVM.loadFeedbacks(point.id!);
+                            final uniqueFeedbacksAvaibility = feedbackVM
+                                .feedbacks
+                                .where((fb) => fb.isAvailable == false)
+                                .map((fb) => fb.createdBy)
+                                .toSet();
+
+                            if (uniqueFeedbacksAvaibility.length >= 3) {
+                              Provider.of<MapPointViewModel>(
+                                context,
+                                listen: false,
+                              ).deleteMapPoint(point.id!);
+                            }
+
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Feedback enviado com sucesso!'),
+                                backgroundColor: Colors.pinkAccent,
+                              ),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.pinkAccent,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: Text(step < 2 ? 'Próximo' : 'Enviar'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    },
+  );
 }
 
 IconData _getIconFor(String label) {

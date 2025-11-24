@@ -43,6 +43,12 @@ dependencies:
   cloud_firestore: ^6.0.2
   flutter_facebook_auth: ^7.1.1
   flutter_map_marker_popup: ^5.1.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon.png"
 
 dev_dependencies:
   flutter_test:

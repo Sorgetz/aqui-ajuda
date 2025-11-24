@@ -10,14 +10,9 @@ class MapPointRepository {
     final doc = await _collection.add(mapPoint.toMap());
     String generatedId = doc.id;
 
-    // 2. Vincule o ID ao objeto local
     mapPoint.id = generatedId;
 
-    // 3. Use o método set() para salvar o documento com o ID gerado e o ID no Map
-    Map<String, dynamic> dataToSave = {
-      ...mapPoint.toMap(), // Seus dados originais
-      'id': generatedId, // ⭐️ Adiciona o ID ao próprio documento
-    };
+    Map<String, dynamic> dataToSave = {...mapPoint.toMap(), 'id': generatedId};
 
     await doc.set(dataToSave);
     return doc.id.hashCode;
@@ -34,23 +29,41 @@ class MapPointRepository {
     return 1;
   }
 
-  Future<int> delete(int id) async {
+  Future<int> delete(String id) async {
+    if (id == '') return 0;
     final query = await _collection.where('id', isEqualTo: id).get();
 
     for (var doc in query.docs) {
-      await doc.reference.delete();
+      final data = doc.data() as Map<String, dynamic>;
+      MapPoint mapPoint = MapPoint.fromMap(data);
+      mapPoint.active = false;
+      await query.docs.first.reference.update(mapPoint.toMap());
     }
-    return query.docs.length;
+    return 1;
   }
 
   Future<List<MapPoint>> find({String filter = ''}) async {
     QuerySnapshot snapshot;
     if (filter.isEmpty) {
-      snapshot = await _collection.orderBy('title').get();
+      snapshot = await _collection
+          .where('active', isEqualTo: true)
+          .orderBy('title')
+          .get();
     } else {
-      snapshot = await _collection.where('type', isEqualTo: filter).get();
+      snapshot = await _collection
+          .where('type', isEqualTo: filter)
+          .where('active', isEqualTo: true)
+          .get();
     }
 
+    return snapshot.docs.map((doc) {
+      final data = doc.data() as Map<String, dynamic>;
+      return MapPoint.fromMap(data);
+    }).toList();
+  }
+
+  Future<List<MapPoint>> findAll({String filter = ''}) async {
+    final snapshot = await _collection.get();
     return snapshot.docs.map((doc) {
       final data = doc.data() as Map<String, dynamic>;
       return MapPoint.fromMap(data);
